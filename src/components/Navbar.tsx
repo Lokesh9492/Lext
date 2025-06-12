@@ -1,6 +1,6 @@
 
 import { Link, useNavigate } from "react-router-dom";
-import { LogOut } from "lucide-react";
+import { LogOut, Settings } from "lucide-react";
 import ThemeToggle from "./ThemeToggle";
 
 const Navbar = () => {
@@ -33,11 +33,24 @@ const Navbar = () => {
               >
                 My Documents
               </Link>
+              <Link
+                to="/settings"
+                className="text-white/90 dark:text-slate-200 hover:text-white dark:hover:text-white transition-colors"
+              >
+                Settings
+              </Link>
             </div>
           </div>
           
           <div className="flex items-center space-x-4">
             <ThemeToggle />
+            <Link
+              to="/settings"
+              className="p-3 rounded-xl bg-white/10 dark:bg-slate-700/50 border border-white/20 dark:border-slate-600 text-white dark:text-slate-100 hover:bg-white/20 dark:hover:bg-slate-600/50 transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-white/30 dark:focus:ring-slate-500"
+              title="Settings"
+            >
+              <Settings size={20} />
+            </Link>
             <button
               onClick={handleLogout}
               className="flex items-center space-x-2 px-4 py-2 bg-red-500/20 hover:bg-red-500/30 text-white rounded-lg transition-all duration-300"

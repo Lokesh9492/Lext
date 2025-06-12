@@ -6,7 +6,7 @@ import FileUploadBox from "@/components/FileUploadBox";
 import DocumentPreview from "@/components/DocumentPreview";
 import OCRResultViewer from "@/components/OCRResultViewer";
 import SpeakerButton from "@/components/SpeakerButton";
-import Tesseract, { PSM } from "tesseract.js";
+import Tesseract from "tesseract.js";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -43,7 +43,6 @@ const Dashboard = () => {
     try {
       const result = await Tesseract.recognize(uploadedFile, 'eng', {
         logger: m => console.log(m),
-        psm: PSM.SINGLE_BLOCK,
       });
       
       setOcrText(result.data.text);
@@ -84,7 +83,7 @@ const Dashboard = () => {
 
         {/* Upload Section */}
         {!uploadedFile && (
-          <FileUploadBox onFileUpload={handleFileUpload} />
+          <FileUploadBox onFileSelect={handleFileUpload} />
         )}
 
         {/* Document Preview and OCR Section */}
@@ -92,7 +91,6 @@ const Dashboard = () => {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             <DocumentPreview 
               file={uploadedFile} 
-              previewUrl={previewUrl}
             />
             
             <div className="bg-white/10 dark:bg-slate-800/50 backdrop-blur-lg rounded-xl p-6 shadow-xl border border-white/20 dark:border-slate-700/50">
