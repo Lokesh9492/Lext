@@ -1,73 +1,80 @@
-# Welcome to your Lovable project
+# 🟣 LEXT – Lens + Text  
+*A lightweight AI-powered document text extraction tool*
 
-## Project info
+LEXT (Lens + Text) is a 100% client-side web application that allows users to upload personal documents (Aadhar, Visa, etc.), extract key information using OCR (Tesseract.js), and manage saved data—all with secure localStorage handling. It supports image/PDF uploads, field parsing, text-to-speech, and offline use.
 
-**URL**: https://lovable.dev/projects/513dad83-38f6-46b8-9c43-29f883d8cffa
+---
 
-## How can I edit this code?
+## 🚀 Features
 
-There are several ways of editing your application.
+- 🔐 **Login System** (localStorage-based)
+- 📄 **Upload Images/PDFs**
+- 🧠 **Client-side OCR using Tesseract.js**
+- ✂️ **Auto Field Extraction** (Name, DOB, Aadhar No, etc.)
+- 📝 **Editable Fields + Save to localStorage**
+- 📂 **View, Edit, Delete Saved Documents**
+- 🗣️ **Text-to-Speech** with voice preferences
+- 🎨 **Theme Toggle + Gradient Styling**
+- 🌙 **Dark/Light Mode Support**
+- 📱 **Fully Responsive UI**
 
-**Use Lovable**
+---
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/513dad83-38f6-46b8-9c43-29f883d8cffa) and start prompting.
+## 🛠️ Tech Stack
 
-Changes made via Lovable will be committed automatically to this repo.
+| Tech             | Description                       |
+|------------------|-----------------------------------|
+| **React.js**     | SPA frontend framework             |
+| **Tailwind CSS** | Modern styling & theming           |
+| **Tesseract.js** | OCR engine for image/PDF text      |
+| **Web Speech API** | Text-to-speech (TTS) support     |
+| **pdf.js-dist**  | Render PDF previews                |
+| **localStorage** | Client-side state persistence      |
 
-**Use your preferred IDE**
+---
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+## 📁 Folder Structure
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+lextext/
+├── public/
+├── src/
+│ ├── assets/
+│ ├── components/
+│ │ ├── Navbar.jsx
+│ │ ├── SpeakerButton.jsx
+│ │ ├── ThemeToggle.jsx
+│ │ ├── FileUploadBox.jsx
+│ │ └── DocumentCard.jsx
+│ ├── pages/
+│ │ ├── Home.jsx
+│ │ ├── Login.jsx
+│ │ ├── Dashboard.jsx
+│ │ ├── Extract.jsx
+│ │ ├── MyDocuments.jsx
+│ │ └── Settings.jsx
+│ ├── App.jsx
+│ ├── main.jsx
+│ └── utils/
+│ ├── ocrUtils.js
+│ └── regexParser.js
+├── tailwind.config.js
+└── README.md
 
-Follow these steps:
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+---
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+## ⚙️ Setup Instructions
 
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+1. **Clone the Repo**
+```bash
+git clone https://github.com/your-username/lext.git
+cd lext
+npm install
 npm run dev
-```
-
-**Edit a file directly in GitHub**
-
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
-
-**Use GitHub Codespaces**
-
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
-
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/513dad83-38f6-46b8-9c43-29f883d8cffa) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+✨ Key Components
+Component	Description
+FileUploadBox.jsx	Drag/drop or browse image/pdf
+SpeakerButton.jsx	Reads text using Web Speech API
+ThemeToggle.jsx	Switch between dark/light/gradient
+OCRResultViewer.jsx	Displays extracted text
+regexParser.js	Extracts structured fields using regex
