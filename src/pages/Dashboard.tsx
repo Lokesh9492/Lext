@@ -1,169 +1,129 @@
 
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { createWorker } from "tesseract.js";
 import Navbar from "@/components/Navbar";
 import FileUploadBox from "@/components/FileUploadBox";
 import DocumentPreview from "@/components/DocumentPreview";
 import OCRResultViewer from "@/components/OCRResultViewer";
 import SpeakerButton from "@/components/SpeakerButton";
-import { useToast } from "@/hooks/use-toast";
+import Tesseract, { PSM } from "tesseract.js";
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const { toast } = useToast();
-  const [username, setUsername] = useState("");
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [ocrText, setOcrText] = useState("");
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string>("");
   const [isProcessing, setIsProcessing] = useState(false);
-  const [ocrProgress, setOcrProgress] = useState(0);
+  const [ocrText, setOcrText] = useState<string>("");
+  const [showOcrResult, setShowOcrResult] = useState(false);
 
   useEffect(() => {
     // Check if user is logged in
     const isLoggedIn = localStorage.getItem("lext_logged_in");
-    const storedUsername = localStorage.getItem("lext_username");
-    
-    if (isLoggedIn !== "true" || !storedUsername) {
+    if (isLoggedIn !== "true") {
       navigate("/login");
-    } else {
-      setUsername(storedUsername);
     }
   }, [navigate]);
 
-  const handleFileSelect = (file: File) => {
-    setSelectedFile(file);
-    setOcrText(""); // Reset OCR text when new file is selected
+  const username = localStorage.getItem("lext_username") || "User";
+  const welcomeText = `Welcome, ${username}! Upload your document to extract key information with LEXT.`;
+
+  const handleFileUpload = (file: File) => {
+    setUploadedFile(file);
+    setShowOcrResult(false);
+    setOcrText("");
+    
+    const url = URL.createObjectURL(file);
+    setPreviewUrl(url);
   };
 
-  const handleStartOCR = async (imageData: string) => {
-    setIsProcessing(true);
-    setOcrProgress(0);
-    
-    try {
-      const worker = await createWorker('eng');
-      
-      // Set up progress tracking
-      await worker.setParameters({
-        tessedit_pageseg_mode: '1',
-      });
+  const handleStartOCR = async () => {
+    if (!uploadedFile) return;
 
-      const { data: { text } } = await worker.recognize(imageData);
-      
-      setOcrText(text);
-      await worker.terminate();
-      
-      toast({
-        title: "Success!",
-        description: "Text extraction completed successfully.",
+    setIsProcessing(true);
+    try {
+      const result = await Tesseract.recognize(uploadedFile, 'eng', {
+        logger: m => console.log(m),
+        psm: PSM.SINGLE_BLOCK,
       });
+      
+      setOcrText(result.data.text);
+      setShowOcrResult(true);
+      
+      // Store OCR text in localStorage for the extraction page
+      localStorage.setItem("lext_ocr_text", result.data.text);
     } catch (error) {
-      console.error('OCR Error:', error);
-      toast({
-        title: "Error",
-        description: "Failed to extract text from the document.",
-        variant: "destructive",
-      });
+      console.error("OCR Error:", error);
     } finally {
       setIsProcessing(false);
-      setOcrProgress(0);
     }
   };
 
   const handleContinueToExtraction = () => {
-    // Store the OCR text in localStorage for the extraction page
-    localStorage.setItem("lext_ocr_text", ocrText);
     navigate("/extract");
   };
-
-  const welcomeMessage = `Welcome ${username}! Upload your document to extract key information with LEXT.`;
-
-  if (!username) {
-    return null; // Show nothing while checking auth
-  }
 
   return (
     <div className="min-h-screen bg-gradient-to-tr from-[#43CEA2] via-[#185A9D] to-[#6A1B9A] dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
       <Navbar />
       
-      <div className="max-w-6xl mx-auto p-4 pt-8">
+      <div className="max-w-7xl mx-auto p-4 pt-8">
         {/* Greeting Section */}
         <div className="bg-white/10 dark:bg-slate-800/50 backdrop-blur-lg rounded-2xl p-8 mb-8 shadow-2xl border border-white/20 dark:border-slate-700/50">
-          <div className="flex items-center justify-between mb-4">
-            <h1 className="text-3xl font-bold text-white dark:text-slate-100">
-              Welcome, {username}! 👋
-            </h1>
-            <SpeakerButton text={welcomeMessage} className="text-white hover:text-yellow-300" />
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-4xl font-bold text-white dark:text-slate-100 mb-4">
+                Welcome, {username}! 👋
+              </h1>
+              <p className="text-white/80 dark:text-slate-300 text-lg">
+                Upload your document to extract key information with LEXT.
+              </p>
+            </div>
+            <SpeakerButton text={welcomeText} className="text-white hover:text-yellow-300" />
           </div>
-          <p className="text-xl text-white/90 dark:text-slate-200">
-            Upload your document to extract key information with LEXT.
-          </p>
         </div>
 
         {/* Upload Section */}
-        {!selectedFile && (
-          <div className="bg-white/10 dark:bg-slate-800/50 backdrop-blur-lg rounded-2xl p-8 mb-8 shadow-2xl border border-white/20 dark:border-slate-700/50">
-            <h2 className="text-2xl font-bold text-white dark:text-slate-100 mb-6">
-              Document Upload
-            </h2>
-            <FileUploadBox onFileSelect={handleFileSelect} isProcessing={isProcessing} />
-          </div>
+        {!uploadedFile && (
+          <FileUploadBox onFileUpload={handleFileUpload} />
         )}
 
-        {/* Preview and OCR Section */}
-        {selectedFile && !ocrText && (
-          <div className="mb-8">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-2xl font-bold text-white dark:text-slate-100">
-                Document Preview
-              </h2>
-              <button
-                onClick={() => {
-                  setSelectedFile(null);
-                  setOcrText("");
-                }}
-                className="px-4 py-2 bg-white/20 hover:bg-white/30 text-white rounded-lg transition-all duration-300"
-              >
-                Upload Different File
-              </button>
-            </div>
-            <DocumentPreview
-              file={selectedFile}
-              onStartOCR={handleStartOCR}
-              isProcessing={isProcessing}
+        {/* Document Preview and OCR Section */}
+        {uploadedFile && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <DocumentPreview 
+              file={uploadedFile} 
+              previewUrl={previewUrl}
             />
-          </div>
-        )}
+            
+            <div className="bg-white/10 dark:bg-slate-800/50 backdrop-blur-lg rounded-xl p-6 shadow-xl border border-white/20 dark:border-slate-700/50">
+              <h3 className="text-xl font-semibold text-white mb-4">OCR Processing</h3>
+              
+              {!showOcrResult && (
+                <div className="text-center">
+                  <button
+                    onClick={handleStartOCR}
+                    disabled={isProcessing}
+                    className="bg-gradient-to-r from-green-500 to-blue-600 hover:from-green-600 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white py-3 px-6 rounded-xl font-semibold transition-all duration-300 hover:scale-105 shadow-lg"
+                  >
+                    {isProcessing ? "Processing..." : "Start OCR"}
+                  </button>
+                  
+                  {isProcessing && (
+                    <div className="mt-4">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto"></div>
+                      <p className="text-white/70 mt-2">Extracting text...</p>
+                    </div>
+                  )}
+                </div>
+              )}
 
-        {/* Processing Indicator */}
-        {isProcessing && (
-          <div className="bg-white/10 dark:bg-slate-800/50 backdrop-blur-lg rounded-xl p-6 mb-8 text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
-            <h3 className="text-lg font-semibold text-white mb-2">Processing Document...</h3>
-            <p className="text-white/70">Extracting text using OCR technology</p>
-          </div>
-        )}
-
-        {/* OCR Results */}
-        {ocrText && (
-          <div className="mb-8">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-2xl font-bold text-white dark:text-slate-100">
-                Extraction Results
-              </h2>
-              <button
-                onClick={() => {
-                  setSelectedFile(null);
-                  setOcrText("");
-                }}
-                className="px-4 py-2 bg-white/20 hover:bg-white/30 text-white rounded-lg transition-all duration-300"
-              >
-                Process New Document
-              </button>
+              {showOcrResult && (
+                <OCRResultViewer 
+                  text={ocrText}
+                  onContinue={handleContinueToExtraction}
+                />
+              )}
             </div>
-            <OCRResultViewer
-              text={ocrText}
-              onContinue={handleContinueToExtraction}
-            />
           </div>
         )}
       </div>

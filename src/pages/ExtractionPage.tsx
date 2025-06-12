@@ -133,13 +133,14 @@ const ExtractionPage = () => {
 
   const handleSave = () => {
     const username = localStorage.getItem("lext_username");
-    const saveKey = `extractedData-${username}`;
+    const docId = Date.now();
+    const saveKey = `extractedData-${username}-${docId}`;
     
     // Save to localStorage
     const savedData = {
       ...extractedData,
       timestamp: new Date().toISOString(),
-      id: Date.now()
+      id: docId
     };
     
     localStorage.setItem(saveKey, JSON.stringify(savedData));
