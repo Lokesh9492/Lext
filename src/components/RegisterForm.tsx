@@ -1,54 +1,45 @@
-
 import { useState } from "react";
 import { toast } from "sonner";
+import { registerWithEmail } from "@/firebase/auth";
 
 const RegisterForm = () => {
-  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
-    // Simulate loading delay
-    setTimeout(() => {
-      // Check if username already exists
-      const existingUsername = localStorage.getItem("lext_username");
-      if (existingUsername === username) {
-        toast.error("Username already exists. Please choose a different one.");
-        setIsLoading(false);
-        return;
+    try {
+      const user = await registerWithEmail(email, password);
+      if (user) {
+        toast.success("Account created successfully! You can now log in.");
+        // Reset form
+        setEmail("");
+        setPassword("");
       }
-
-      // Store credentials
-      localStorage.setItem("lext_username", username);
-      localStorage.setItem("lext_password", password);
-      
-      toast.success("Account created successfully! You can now log in.");
-      
-      // Reset form
-      setUsername("");
-      setPassword("");
+    } catch (error: any) {
+      toast.error(error.message || "Failed to create account. Please try again.");
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
   };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
-        <label htmlFor="new-username" className="block text-sm font-medium text-white/90 dark:text-slate-200 mb-2">
-          Username
+        <label htmlFor="new-email" className="block text-sm font-medium text-white/90 dark:text-slate-200 mb-2">
+          Email
         </label>
         <input
-          type="text"
-          id="new-username"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
+          type="email"
+          id="new-email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
           className="w-full px-4 py-3 bg-white/10 dark:bg-slate-700/50 border border-white/20 dark:border-slate-600 rounded-xl text-white dark:text-slate-100 placeholder-white/50 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-white/30 dark:focus:ring-slate-500 transition-all duration-300"
-          placeholder="Choose a username"
+          placeholder="Enter your email"
           required
-          minLength={3}
         />
       </div>
       

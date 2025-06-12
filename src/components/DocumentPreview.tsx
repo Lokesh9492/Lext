@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import * as pdfjsLib from "pdfjs-dist";
 
@@ -7,11 +6,9 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.j
 
 interface DocumentPreviewProps {
   file: File;
-  onStartOCR: (imageData: string) => void;
-  isProcessing: boolean;
 }
 
-const DocumentPreview = ({ file, onStartOCR, isProcessing }: DocumentPreviewProps) => {
+const DocumentPreview = ({ file }: DocumentPreviewProps) => {
   const [preview, setPreview] = useState<string>("");
   const [loading, setLoading] = useState(true);
 
@@ -62,12 +59,6 @@ const DocumentPreview = ({ file, onStartOCR, isProcessing }: DocumentPreviewProp
     }
   };
 
-  const handleStartOCR = () => {
-    if (preview) {
-      onStartOCR(preview);
-    }
-  };
-
   if (loading) {
     return (
       <div className="bg-white/10 dark:bg-slate-800/50 backdrop-blur-lg rounded-xl p-6 text-center">
@@ -88,20 +79,6 @@ const DocumentPreview = ({ file, onStartOCR, isProcessing }: DocumentPreviewProp
           className="max-w-full h-auto rounded-lg shadow-lg mx-auto"
           style={{ maxHeight: '400px' }}
         />
-      </div>
-      
-      <div className="text-center">
-        <button
-          onClick={handleStartOCR}
-          disabled={isProcessing}
-          className={`px-6 py-3 bg-gradient-to-r from-green-500 to-blue-600 text-white font-semibold rounded-lg transition-all duration-300 ${
-            isProcessing
-              ? "opacity-50 cursor-not-allowed"
-              : "hover:from-green-600 hover:to-blue-700 hover:scale-105"
-          }`}
-        >
-          {isProcessing ? "Processing..." : "Start OCR"}
-        </button>
       </div>
     </div>
   );

@@ -1,15 +1,12 @@
-
-import { useState } from "react";
 import { Copy, Download } from "lucide-react";
 import SpeakerButton from "./SpeakerButton";
 import { useToast } from "@/hooks/use-toast";
 
 interface OCRResultViewerProps {
   text: string;
-  onContinue: () => void;
 }
 
-const OCRResultViewer = ({ text, onContinue }: OCRResultViewerProps) => {
+const OCRResultViewer = ({ text }: OCRResultViewerProps) => {
   const { toast } = useToast();
 
   const handleCopyText = async () => {
@@ -66,13 +63,6 @@ const OCRResultViewer = ({ text, onContinue }: OCRResultViewerProps) => {
         >
           <Download size={16} />
           <span>Download</span>
-        </button>
-        
-        <button
-          onClick={onContinue}
-          className="px-6 py-2 bg-gradient-to-r from-green-500 to-blue-600 hover:from-green-600 hover:to-blue-700 text-white font-semibold rounded-lg transition-all duration-300 hover:scale-105"
-        >
-          Continue to Extraction
         </button>
       </div>
     </div>

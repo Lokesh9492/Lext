@@ -1,15 +1,23 @@
-
 import { Link, useNavigate } from "react-router-dom";
 import { LogOut, Settings } from "lucide-react";
 import ThemeToggle from "./ThemeToggle";
+import { useAuth } from "@/contexts/AuthContext";
+import { logoutUser } from "@/firebase/auth";
+import { toast } from "sonner";
 
 const Navbar = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
 
-  const handleLogout = () => {
-    localStorage.removeItem("lext_logged_in");
-    localStorage.removeItem("lext_username");
-    navigate("/login");
+  const handleLogout = async () => {
+    try {
+      await logoutUser();
+      toast.success("Logged out successfully");
+      navigate("/login");
+    } catch (error) {
+      console.error("Logout error:", error);
+      toast.error("Failed to logout. Please try again.");
+    }
   };
 
   return (

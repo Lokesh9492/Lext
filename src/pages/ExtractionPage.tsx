@@ -1,116 +1,247 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
-import SpeakerButton from "@/components/SpeakerButton";
-import ExtractedFieldsForm from "@/components/extraction/ExtractedFieldsForm";
-import DocumentDisplay from "@/components/extraction/DocumentDisplay";
-import { parseOCRText, ExtractedData } from "@/utils/textParser";
-import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { parseOCRText } from "@/utils/textParser";
+import { useAuth } from "@/contexts/AuthContext";
+import { saveDocument } from "@/firebase/documents";
+import DocumentPreview from "@/components/DocumentPreview";
+
+interface ExtractedData {
+  [key: string]: string;
+}
+
+const DOCUMENT_TYPES = [
+  "Aadhar Card",
+  "PAN Card",
+  "Passport",
+  "Driving License",
+  "Voter ID",
+  "Other"
+];
 
 const ExtractionPage = () => {
   const navigate = useNavigate();
-  const [extractedData, setExtractedData] = useState<ExtractedData>({
-    fullName: "",
-    dateOfBirth: "",
-    aadharNumber: "",
-    gender: "",
-    address: "",
-    documentNumber: ""
-  });
-  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const { toast } = useToast();
+  const { user } = useAuth();
+  const [ocrText, setOcrText] = useState<string>("");
+  const [previewUrl, setPreviewUrl] = useState<string>("");
+  const [extractedData, setExtractedData] = useState<ExtractedData>({});
+  const [isSaving, setIsSaving] = useState(false);
+  const [documentType, setDocumentType] = useState<string>("");
+  const [isEditing, setIsEditing] = useState<{ [key: string]: boolean }>({});
 
   useEffect(() => {
-    // Check if user is logged in
-    const isLoggedIn = localStorage.getItem("lext_logged_in");
-    if (isLoggedIn !== "true") {
-      navigate("/login");
+    // Get OCR text from localStorage
+    const storedText = localStorage.getItem("lext_ocr_text");
+    const storedPreviewUrl = localStorage.getItem("lext_preview_url");
+    
+    if (!storedText) {
+      toast({
+        title: "No Document",
+        description: "Please upload and process a document first",
+        variant: "destructive",
+      });
+      navigate("/dashboard");
       return;
     }
 
-    // Get OCR text from localStorage
-    const ocrText = localStorage.getItem("lext_ocr_text");
-    if (ocrText) {
-      const parsed = parseOCRText(ocrText);
-      setExtractedData(parsed);
+    setOcrText(storedText);
+    if (storedPreviewUrl) {
+      setPreviewUrl(storedPreviewUrl);
     }
 
-    // Try to get the uploaded file info (this is a limitation since we can't store File objects in localStorage)
-    // In a real app, you'd store the file in a proper state management solution
-  }, [navigate]);
+    // Parse the OCR text
+    try {
+      const parsedData = parseOCRText(storedText);
+      setExtractedData(parsedData);
+      // Initialize editing state for each field
+      const initialEditingState = Object.keys(parsedData).reduce((acc, key) => {
+        acc[key] = false;
+        return acc;
+      }, {} as { [key: string]: boolean });
+      setIsEditing(initialEditingState);
+    } catch (error) {
+      console.error("Error parsing OCR text:", error);
+      toast({
+        title: "Error",
+        description: "Failed to parse document data",
+        variant: "destructive",
+      });
+    }
+  }, [navigate, toast]);
 
-  const handleSave = (data: ExtractedData) => {
-    const username = localStorage.getItem("lext_username") || "user";
-    const timestamp = new Date().toISOString();
-    const id = Date.now().toString();
+  const handleSave = async () => {
+    if (!user || !extractedData) return;
 
-    const documentEntry = {
-      id,
-      ...data,
-      timestamp,
-      title: `${data.aadharNumber ? 'Aadhar' : 'Document'} - ${new Date().toLocaleDateString()}`
-    };
+    setIsSaving(true);
+    try {
+      await saveDocument({
+        userId: user.uid,
+        ...extractedData,
+        documentType,
+        ocrText,
+        previewUrl,
+        createdAt: new Date().toISOString(),
+      });
 
-    // Get existing documents
-    const existingDocs = JSON.parse(localStorage.getItem(`lext_documents_${username}`) || "[]");
-    existingDocs.push(documentEntry);
-    
-    // Save updated list
-    localStorage.setItem(`lext_documents_${username}`, JSON.stringify(existingDocs));
-
-    // Clear the OCR text
-    localStorage.removeItem("lext_ocr_text");
+      toast({
+        title: "Success",
+        description: "Document saved successfully",
+      });
+      navigate("/documents");
+    } catch (error) {
+      console.error("Error saving document:", error);
+      toast({
+        title: "Error",
+        description: "Failed to save document",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
-  const summaryText = `Extracted information: Name: ${extractedData.fullName || 'Not found'}, Aadhar: ${extractedData.aadharNumber || 'Not found'}, Date of Birth: ${extractedData.dateOfBirth || 'Not found'}`;
+  const handleFieldEdit = (key: string) => {
+    setIsEditing(prev => ({ ...prev, [key]: true }));
+  };
+
+  const handleFieldChange = (key: string, value: string) => {
+    setExtractedData(prev => ({ ...prev, [key]: value }));
+  };
+
+  const handleFieldSave = (key: string) => {
+    setIsEditing(prev => ({ ...prev, [key]: false }));
+  };
+
+  const addNewField = () => {
+    const newKey = `field_${Object.keys(extractedData).length + 1}`;
+    setExtractedData(prev => ({ ...prev, [newKey]: "" }));
+    setIsEditing(prev => ({ ...prev, [newKey]: true }));
+  };
+
+  if (!extractedData) {
+    return (
+      <div className="min-h-screen bg-gradient-to-tr from-[#43CEA2] via-[#185A9D] to-[#6A1B9A] dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
+        <Navbar />
+        <div className="max-w-7xl mx-auto p-4 pt-8">
+          <div className="bg-white/10 dark:bg-slate-800/50 backdrop-blur-lg rounded-2xl p-8 shadow-2xl border border-white/20 dark:border-slate-700/50">
+            <p className="text-white/80 dark:text-slate-300 text-center">Loading...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-tr from-[#43CEA2] via-[#185A9D] to-[#6A1B9A] dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
       <Navbar />
       
       <div className="max-w-7xl mx-auto p-4 pt-8">
-        {/* Header Section */}
-        <div className="bg-white/10 dark:bg-slate-800/50 backdrop-blur-lg rounded-2xl p-6 mb-8 shadow-2xl border border-white/20 dark:border-slate-700/50">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <Button
-                onClick={() => navigate("/dashboard")}
-                variant="outline"
-                className="bg-white/10 border-white/20 text-white hover:bg-white/20"
-              >
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Back to Dashboard
-              </Button>
-              <div>
-                <h1 className="text-3xl font-bold text-white">Extract & Edit Information</h1>
-                <p className="text-white/80">Review and edit the extracted fields below</p>
-              </div>
-            </div>
-            <SpeakerButton text={summaryText} className="text-white hover:text-yellow-300" />
-          </div>
-        </div>
-
-        {/* Main Content */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Document Preview */}
-          <DocumentDisplay file={uploadedFile} />
-          
-          {/* Extracted Fields Form */}
-          <ExtractedFieldsForm 
-            initialData={extractedData}
-            onSave={handleSave}
-          />
-        </div>
+          <div className="bg-white/10 dark:bg-slate-800/50 backdrop-blur-lg rounded-2xl p-8 shadow-2xl border border-white/20 dark:border-slate-700/50">
+            <h2 className="text-2xl font-bold text-white dark:text-slate-100 mb-6">Document Preview</h2>
+            {previewUrl ? (
+              <div className="aspect-[3/4] relative rounded-xl overflow-hidden">
+                <img
+                  src={previewUrl}
+                  alt="Document preview"
+                  className="w-full h-full object-contain"
+                />
+              </div>
+            ) : (
+              <div className="aspect-[3/4] flex items-center justify-center bg-white/5 rounded-xl">
+                <p className="text-white/60">No preview available</p>
+              </div>
+            )}
+          </div>
 
-        {/* Navigation Footer */}
-        <div className="mt-8 text-center">
-          <Button
-            onClick={() => navigate("/documents")}
-            className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white px-8 py-3 rounded-xl font-semibold transition-all duration-300 hover:scale-105 shadow-lg"
-          >
-            View Saved Documents
-          </Button>
+          {/* Extracted Information */}
+          <div className="bg-white/10 dark:bg-slate-800/50 backdrop-blur-lg rounded-2xl p-8 shadow-2xl border border-white/20 dark:border-slate-700/50">
+            <h2 className="text-2xl font-bold text-white dark:text-slate-100 mb-6">Extracted Information</h2>
+            
+            {/* Document Type Selector */}
+            <div className="mb-6">
+              <label className="block text-white/90 dark:text-slate-200 mb-2">Document Type</label>
+              <select
+                value={documentType}
+                onChange={(e) => setDocumentType(e.target.value)}
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-[#43CEA2]"
+              >
+                <option value="">Select Document Type</option>
+                {DOCUMENT_TYPES.map((type) => (
+                  <option key={type} value={type} className="bg-slate-800">
+                    {type}
+                  </option>
+                ))}
+              </select>
+            </div>
+            
+            <div className="space-y-6">
+              {Object.entries(extractedData).map(([key, value]) => (
+                <div key={key} className="bg-white/5 rounded-xl p-4">
+                  <div className="flex justify-between items-center mb-2">
+                    <h3 className="text-lg font-semibold text-white/90 dark:text-slate-200">
+                      {key.charAt(0).toUpperCase() + key.slice(1)}
+                    </h3>
+                    {!isEditing[key] && (
+                      <button
+                        onClick={() => handleFieldEdit(key)}
+                        className="text-[#43CEA2] hover:text-[#39B896] text-sm"
+                      >
+                        Edit
+                      </button>
+                    )}
+                  </div>
+                  {isEditing[key] ? (
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={value}
+                        onChange={(e) => handleFieldChange(key, e.target.value)}
+                        className="flex-1 bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-[#43CEA2]"
+                      />
+                      <button
+                        onClick={() => handleFieldSave(key)}
+                        className="px-3 py-2 bg-[#43CEA2] hover:bg-[#39B896] text-white rounded-lg"
+                      >
+                        Save
+                      </button>
+                    </div>
+                  ) : (
+                    <p className="text-white/80 dark:text-slate-300">
+                      {value || "Not specified"}
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {/* Add New Field Button */}
+            <button
+              onClick={addNewField}
+              className="mt-6 w-full py-3 bg-white/10 hover:bg-white/20 text-white rounded-xl font-semibold transition-all duration-300"
+            >
+              + Add New Field
+            </button>
+
+            <div className="mt-8 flex justify-end space-x-4">
+              <button
+                onClick={() => navigate("/dashboard")}
+                className="px-6 py-3 bg-white/10 hover:bg-white/20 text-white rounded-xl font-semibold transition-all duration-300"
+              >
+                Back
+              </button>
+              <button
+                onClick={handleSave}
+                disabled={isSaving || !documentType}
+                className="px-6 py-3 bg-gradient-to-r from-[#43CEA2] to-[#185A9D] hover:from-[#39B896] hover:to-[#1A4C87] disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl font-semibold transition-all duration-300"
+              >
+                {isSaving ? "Saving..." : "Save Document"}
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
